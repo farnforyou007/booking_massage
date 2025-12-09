@@ -84,3 +84,25 @@ export async function adminUpdateBookingStatus(code, status, token) {
     });
     return await res.json();
 }
+
+// ผู้ใช้ยกเลิกการจองเอง (ส่งแค่ code)
+export async function userCancelBooking(code) {
+    checkApiBase();
+
+    const body = {
+        format: "json",
+        action: "cancelBooking", // ตรงกับ handleApiPost_ ใน Apps Script
+        code: String(code),
+    };
+
+    const res = await fetch(API_BASE, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(body),
+    });
+
+    if (!res.ok) throw new Error("ยกเลิกรายการไม่สำเร็จ");
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.message || "ยกเลิกรายการไม่สำเร็จ");
+    return data;
+}

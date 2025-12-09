@@ -1,24 +1,16 @@
 // src/pages/TicketPage.jsx
 import { useEffect, useState } from "react";
 import { useSearchParams, Link, useNavigate } from "react-router-dom";
-import { getBookingByCode } from "../api";
+import { getBookingByCode, userCancelBooking } from "../api";
 import { QRCodeCanvas } from "qrcode.react";
+import Swal from "sweetalert2";
 import {
-    FiCalendar,
-    FiClock,
-    FiUser,
-    FiPhone,
-    FiHash,
-    FiAlertCircle,
-    FiCheckCircle,
-    FiArrowLeft,
-    FiMapPin,
-    FiActivity,
-    FiDownload,
-    FiSearch
+    FiCalendar, FiClock, FiUser, FiPhone, FiHash,
+    FiAlertCircle, FiCheckCircle, FiArrowLeft, FiActivity,
+    FiDownload, FiSearch, FiXCircle, FiMapPin // ✅ เพิ่ม FiMapPin แล้วครับ
 } from "react-icons/fi";
 
-// Helper renderStatus (คงเดิม)
+// Helper renderStatus
 function renderStatus(status) {
     const s = String(status || "").toUpperCase();
     if (s === "BOOKED") {
@@ -35,7 +27,7 @@ function renderStatus(status) {
         };
     } else if (s === "CANCELLED") {
         return {
-            text: "ถูกยกเลิก",
+            text: "ยกเลิกการจอง",
             cls: "bg-rose-100 text-rose-700 border-rose-200",
             icon: <FiAlertCircle />,
         };
@@ -55,11 +47,10 @@ export default function TicketPage() {
     const [loading, setLoading] = useState(false);
     const [booking, setBooking] = useState(null);
     const [errorMsg, setErrorMsg] = useState("");
-
-    // State สำหรับค้นหา
     const [searchInput, setSearchInput] = useState("");
+    const [cancelling, setCancelling] = useState(false);
 
-    // 1. Effect: โหลดข้อมูลเมื่อมี code
+    // โหลดข้อมูล
     useEffect(() => {
         if (!codeFromUrl) {
             setBooking(null);
@@ -67,41 +58,70 @@ export default function TicketPage() {
             setLoading(false);
             return;
         }
-
-        async function load() {
-            setLoading(true);
-            setErrorMsg("");
-            setBooking(null);
-
-            try {
-                const res = await getBookingByCode(codeFromUrl);
-                if (!res || !res.ok || !res.booking) {
-                    setErrorMsg(res?.message || "ไม่พบข้อมูลการลงทะเบียน");
-                } else {
-                    setBooking(res.booking);
-                }
-            } catch (err) {
-                setErrorMsg("เกิดข้อผิดพลาด: " + err.message);
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        load();
+        loadData();
     }, [codeFromUrl]);
 
-    // 2. Handle Search
+    async function loadData() {
+        setLoading(true);
+        setErrorMsg("");
+        setBooking(null);
+        try {
+            const res = await getBookingByCode(codeFromUrl);
+            if (!res || !res.ok || !res.booking) {
+                setErrorMsg(res?.message || "ไม่พบข้อมูลการลงทะเบียน");
+            } else {
+                setBooking(res.booking);
+            }
+        } catch (err) {
+            setErrorMsg("เกิดข้อผิดพลาด: " + err.message);
+        } finally {
+            setLoading(false);
+        }
+    }
+
     const handleSearch = (e) => {
         e.preventDefault();
         if (!searchInput.trim()) return;
         setSearchParams({ code: searchInput.trim() });
     };
 
-    // 3. Clear Search
     const clearSearch = () => {
         setSearchParams({});
         setSearchInput("");
         setErrorMsg("");
+    };
+
+    // ฟังก์ชันยกเลิกการจอง
+    const handleCancelBooking = async () => {
+        if (!booking) return;
+
+        const result = await Swal.fire({
+            title: 'ต้องการยกเลิก?',
+            text: "หากยกเลิกแล้ว ท่านจะต้องจองคิวใหม่",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'ยืนยันยกเลิก',
+            cancelButtonText: 'เก็บไว้ก่อน'
+        });
+
+        if (result.isConfirmed) {
+            setCancelling(true);
+            try {
+                const res = await userCancelBooking(booking.code);
+                if (res.ok) {
+                    await Swal.fire('ยกเลิกสำเร็จ', 'รายการจองของคุณถูกยกเลิกแล้ว', 'success');
+                    loadData(); // โหลดข้อมูลใหม่เพื่ออัปเดตสถานะ
+                } else {
+                    Swal.fire('เกิดข้อผิดพลาด', res.message, 'error');
+                }
+            } catch (err) {
+                Swal.fire('Error', err.message, 'error');
+            } finally {
+                setCancelling(false);
+            }
+        }
     };
 
     return (
@@ -133,7 +153,6 @@ export default function TicketPage() {
 
                 {/* 1. Header (สีเขียว) */}
                 <div className="bg-emerald-800 p-6 text-white relative overflow-hidden flex-shrink-0">
-                    {/* ปุ่มยกเลิกค้นหา (แสดงเฉพาะตอนมี Code แล้ว) */}
                     {codeFromUrl && (
                         <button
                             onClick={clearSearch}
@@ -145,7 +164,6 @@ export default function TicketPage() {
                             </svg>
                         </button>
                     )}
-
                     <div className="absolute top-0 right-0 opacity-10 transform translate-x-1/4 -translate-y-1/4 pointer-events-none">
                         <FiActivity size={150} />
                     </div>
@@ -154,7 +172,7 @@ export default function TicketPage() {
                             <FiActivity className="text-2xl" />
                         </div>
                         <h2 className="text-xl font-bold tracking-wide">
-                            {codeFromUrl ? "บัตรลงทะเบียนนวดรักษา" : "ค้นหาการลงทะเบียน"}
+                            {codeFromUrl ? "บัตรลงทะเบียน" : "ค้นหาการลงทะเบียน"}
                         </h2>
                         <p className="text-emerald-200 text-sm font-light">คลินิกการแพทย์แผนไทย</p>
                     </div>
@@ -163,7 +181,7 @@ export default function TicketPage() {
                 {/* 2. Body Content */}
                 <div className="relative flex-grow flex flex-col bg-white">
 
-                    {/* --- SCENE 1: Search Form (แสดงเมื่อไม่มี Code) --- */}
+                    {/* --- SCENE 1: Search Form --- */}
                     {!codeFromUrl && (
                         <div className="p-8 flex flex-col justify-center flex-grow">
                             <div className="text-center mb-6">
@@ -221,11 +239,6 @@ export default function TicketPage() {
                             <div className="pt-8 pb-6 px-6 flex flex-col items-center justify-center bg-white">
                                 <div className="p-3 border-2 border-dashed border-gray-200 rounded-xl bg-stone-50 relative">
                                     <QRCodeCanvas value={booking.code} size={160} level="H" />
-                                    {/* Corners */}
-                                    <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-emerald-500 -mt-0.5 -ml-0.5 rounded-tl-lg"></div>
-                                    <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-emerald-500 -mt-0.5 -mr-0.5 rounded-tr-lg"></div>
-                                    <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-emerald-500 -mb-0.5 -ml-0.5 rounded-bl-lg"></div>
-                                    <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-emerald-500 -mb-0.5 -mr-0.5 rounded-br-lg"></div>
                                 </div>
                                 <div className="mt-4 flex items-center gap-2 px-4 py-1.5 bg-gray-100 rounded-full">
                                     <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Booking ID</span>
@@ -254,7 +267,7 @@ export default function TicketPage() {
                                     })()}
                                 </div>
 
-                                {/* Grid Info (UI เดิมที่คุณชอบ) */}
+                                {/* Grid Info */}
                                 <div className="grid grid-cols-2 gap-y-5 gap-x-4 text-sm">
                                     <div className="col-span-2">
                                         <label className="block text-xs text-gray-400 mb-1 font-medium">ชื่อผู้จอง</label>
@@ -288,18 +301,24 @@ export default function TicketPage() {
                                     </div>
                                 </div>
 
-                                {/* Footer Notice */}
-                                <div className="bg-emerald-50 rounded-xl p-3 text-center">
-                                    <p className="text-xs text-emerald-800 font-medium">
-                                        กรุณาแสดง QR Code นี้ต่อเจ้าหน้าที่<br />ในวันที่เข้ารับบริการ
-                                    </p>
-                                </div>
+                                {/* 🔥 ปุ่มยกเลิกการจอง (แสดงเฉพาะสถานะ BOOKED) */}
+                                {booking.status === "BOOKED" && (
+                                    <div className="pt-4 border-t border-gray-100">
+                                        <button
+                                            onClick={handleCancelBooking}
+                                            disabled={cancelling}
+                                            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-rose-200 text-rose-600 bg-rose-50 hover:bg-rose-100 hover:border-rose-300 font-semibold text-sm transition-colors"
+                                        >
+                                            {cancelling ? "กำลังดำเนินการ..." : <><FiXCircle /> ยกเลิกการจอง</>}
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
                 </div>
 
-                {/* Shadow Element */}
+                {/* Shadow */}
                 {!loading && !errorMsg && codeFromUrl && (
                     <div className="w-[90%] mx-auto h-3 bg-emerald-900/10 rounded-b-xl filter blur-sm"></div>
                 )}
@@ -312,7 +331,6 @@ export default function TicketPage() {
                 </p>
             )}
 
-            {/* Animations */}
             <style>{`
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
