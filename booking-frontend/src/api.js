@@ -1,153 +1,86 @@
 const API_BASE = import.meta.env.VITE_API_BASE;
 
-// ช่วยเช็กว่า .env ตั้งไว้หรือยัง
 function checkApiBase() {
-    if (!API_BASE) {
-        throw new Error("ไม่พบ VITE_API_BASE ใน .env (URL /exec ของ Apps Script)");
-    }
+    if (!API_BASE) throw new Error("ไม่พบ API Base URL");
 }
 
-// โหลดช่วงเวลา (หน้า index เดิม)
+// --- PUBLIC ---
 export async function getSlots(date) {
     checkApiBase();
-    const params = new URLSearchParams({
-        format: "json",
-        action: "slots",
-        date,
-    });
-
-    const res = await fetch(`${API_BASE}?${params.toString()}`);
-    if (!res.ok) throw new Error("โหลดช่วงเวลาไม่สำเร็จ (HTTP " + res.status + ")");
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.message || "โหลดช่วงเวลาไม่สำเร็จ");
-    return data; // { ok, date, items: [...] }
+    const res = await fetch(`${API_BASE}?format=json&action=slots&date=${date}`);
+    return await res.json();
 }
 
-// สร้างการจอง (index เดิม)
 export async function createBooking(payload) {
     checkApiBase();
-    const params = new URLSearchParams({
-        format: "json",
-        action: "booking",
-    });
-
-    const body = new URLSearchParams(payload); // date, slot_id, name, phone,...
-
-    const res = await fetch(`${API_BASE}?${params.toString()}`, {
+    const res = await fetch(`${API_BASE}?format=json&action=createBooking`, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-        },
-        body,
+        headers: { "Content-Type": "text/plain;charset=utf-8" }, // ใช้ text/plain เลี่ยง preflight
+        body: JSON.stringify(payload),
     });
-
-    if (!res.ok) throw new Error("จองไม่สำเร็จ (HTTP " + res.status + ")");
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.message || "จองไม่สำเร็จ");
-    return data;
+    return await res.json();
 }
 
-// โหลดข้อมูลบัตรจาก booking_code (ticket.html เดิม)
 export async function getBookingByCode(code) {
     checkApiBase();
-    const params = new URLSearchParams({
-        format: "json",
-        action: "bookingByCode",
-        code,
-    });
-
-    const res = await fetch(`${API_BASE}?${params.toString()}`);
-    if (!res.ok) throw new Error("โหลดข้อมูลบัตรไม่สำเร็จ (HTTP " + res.status + ")");
-    const data = await res.json();
-    // ticket.html เดิม return { ok: true/false, message, booking: {...} }
-    return data;
-}
-
-// ----------------- ADMIN APIs -----------------
-
-// ดึงรายการจองตามวันที่ (สำหรับเจ้าหน้าที่)
-// คาดหวังให้ Apps Script doGet คืน:
-// { ok: true, auth: true/false, date, items: [ { no, date, slot, name, phone, status, code } ] }
-export async function adminGetBookings(date, password) {
-    checkApiBase();
-    const params = new URLSearchParams({
-        format: "json",
-        action: "adminBookings",
-        date,
-        password,
-    });
-
-    const res = await fetch(`${API_BASE}?${params.toString()}`);
-    if (!res.ok) throw new Error("โหลดรายการจองไม่สำเร็จ (HTTP " + res.status + ")");
+    const res = await fetch(`${API_BASE}?format=json&action=bookingByCode&code=${code}`);
     return await res.json();
 }
 
-// ดึงสรุปช่วงเวลา + จำนวนคิวในแต่ละสลอต
-// คาดหวังผลแบบ: { ok, auth, date, items: [ { id, label, capacity, booked, remaining } ] }
-export async function adminGetSlotsSummary(date, password) {
+// --- ADMIN (SECURE) ---
+
+// 1. ฟังก์ชันล็อกอิน (ใหม่)
+export async function adminLogin(password) {
     checkApiBase();
-    const params = new URLSearchParams({
-        format: "json",
-        action: "adminSlotsSummary",
-        date,
-        password,
-    });
-
-    const res = await fetch(`${API_BASE}?${params.toString()}`);
-    if (!res.ok) throw new Error("โหลดข้อมูลช่วงเวลาไม่สำเร็จ (HTTP " + res.status + ")");
-    return await res.json();
-}
-
-// อัปเดตจำนวนคิวสูงสุดของสลอต
-// body รอผล { ok, auth, message }
-// ... (โค้ดเดิมที่มีอยู่แล้ว) ...
-
-// อัปเดตจำนวนคิวสูงสุดของสลอต
-export async function adminUpdateSlotCapacity(slotId, newCapacity, password) {
-    checkApiBase();
-
-    const body = {
-        format: "json",
-        action: "updateSlotCapacity",
-        slot_id: String(slotId),
-        capacity: Number(newCapacity),
-        password,
-    };
-
-    const res = await fetch(API_BASE, {
+    const res = await fetch(`${API_BASE}?format=json&action=login`, {
         method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" }, // ใช้ text/plain เพื่อเลี่ยง CORS Preflight
-        body: JSON.stringify(body),
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ password }),
     });
-
-    if (!res.ok) throw new Error("อัปเดตจำนวนคิวไม่สำเร็จ");
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.message || "อัปเดตไม่สำเร็จ");
-    return data;
+    return await res.json(); // คาดหวัง { ok: true, token: "..." }
 }
 
-// 🔥 เพิ่มฟังก์ชันนี้ต่อท้ายไฟล์ครับ
-export async function adminUpdateBookingStatus(code, status, password) {
+// 2. ดึงข้อมูล (ส่ง token แทน password)
+export async function adminGetBookings(date, token) {
     checkApiBase();
+    const res = await fetch(`${API_BASE}?format=json&action=adminBookings&date=${date}&token=${token}`);
+    return await res.json();
+}
 
-    const body = {
-        format: "json",
-        action: "updateStatus",
-        code: String(code),
-        status: String(status),
-        password,
-    };
+export async function adminGetSlotsSummary(date, token) {
+    checkApiBase();
+    const res = await fetch(`${API_BASE}?format=json&action=adminSlotsSummary&date=${date}&token=${token}`);
+    return await res.json();
+}
 
+export async function adminUpdateSlotCapacity(slotId, newCapacity, token) {
+    checkApiBase();
     const res = await fetch(API_BASE, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+            format: "json",
+            action: "updateSlotCapacity",
+            slot_id: String(slotId),
+            capacity: Number(newCapacity),
+            token, // ส่ง token
+        }),
     });
-
-    if (!res.ok) throw new Error("เปลี่ยนสถานะไม่สำเร็จ");
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.message || "เปลี่ยนสถานะไม่สำเร็จ");
-    return data;
+    return await res.json();
 }
 
-// เพิ่มต่อจากฟังก์ชันอื่นๆ
+export async function adminUpdateBookingStatus(code, status, token) {
+    checkApiBase();
+    const res = await fetch(API_BASE, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+            format: "json",
+            action: "updateStatus",
+            code: String(code),
+            status: String(status),
+            token, // ส่ง token
+        }),
+    });
+    return await res.json();
+}

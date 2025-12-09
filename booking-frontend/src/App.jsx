@@ -14,8 +14,8 @@ export default function App() {
   const navItems = [
     { path: "/", label: "จองคิว", icon: <FiCalendar /> },
     { path: "/ticket", label: "ตรวจสอบสิทธิ์", icon: <FiClipboard /> },
-    { path: "/scan", label: "สแกน (จนท.)", icon: <FiCamera /> },
-    { path: "/admin", label: "ระบบหลังบ้าน", icon: <FiTool /> },
+    // { path: "/scan", label: "สแกน (จนท.)", icon: <FiCamera /> },
+    { path: "/admin", label: "เจ้าหน้าที่", icon: <FiTool /> },
   ];
 
   return (
@@ -99,7 +99,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<BookingPage />} />
           <Route path="/ticket" element={<TicketPage />} />
-          <Route path="/scan" element={<ScanPage />} />
+          {/* <Route path="/scan" element={<ScanPage />} /> */}
           <Route path="/admin" element={<AdminPage />} />
         </Routes>
       </main>
