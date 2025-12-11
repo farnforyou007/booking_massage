@@ -7,7 +7,7 @@ import Swal from "sweetalert2";
 import {
     FiCalendar, FiClock, FiUser, FiPhone, FiHash,
     FiAlertCircle, FiCheckCircle, FiArrowLeft, FiActivity,
-    FiDownload, FiSearch, FiXCircle, FiMapPin // ✅ เพิ่ม FiMapPin แล้วครับ
+    FiDownload, FiSearch, FiXCircle, FiMapPin
 } from "react-icons/fi";
 
 // Helper renderStatus
@@ -50,6 +50,10 @@ export default function TicketPage() {
     const [searchInput, setSearchInput] = useState("");
     const [cancelling, setCancelling] = useState(false);
 
+    useEffect(() => {
+    document.title = "ตรวจสอบบัตรลงทะเบียน | คณะการแพทย์แผนไทย";
+}, []);
+
     // โหลดข้อมูล
     useEffect(() => {
         if (!codeFromUrl) {
@@ -67,6 +71,9 @@ export default function TicketPage() {
         setBooking(null);
         try {
             const res = await getBookingByCode(codeFromUrl);
+
+            // ลบ Logic การเช็ค Strict Match ออกไป
+            // เพราะถ้า Backend ส่งมาได้ แปลว่าถูกต้องตามเงื่อนไขใหม่แล้ว
             if (!res || !res.ok || !res.booking) {
                 setErrorMsg(res?.message || "ไม่พบข้อมูลการลงทะเบียน");
             } else {
@@ -172,7 +179,7 @@ export default function TicketPage() {
                             <FiActivity className="text-2xl" />
                         </div>
                         <h2 className="text-xl font-bold tracking-wide">
-                            {codeFromUrl ? "บัตรลงทะเบียน" : "ค้นหาการลงทะเบียน"}
+                            {codeFromUrl ? "บัตรลงทะเบียน" : "บัตรลงทะเบียน"}
                         </h2>
                         <p className="text-emerald-200 text-sm font-light">คลินิกการแพทย์แผนไทย</p>
                     </div>
@@ -188,13 +195,16 @@ export default function TicketPage() {
                                 <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3">
                                     <FiSearch size={24} />
                                 </div>
-                                <p className="text-gray-500 text-sm">กรอกรหัสจอง หรือ เบอร์โทรศัพท์ เพื่อค้นหา</p>
+                                <p className="text-gray-500 text-sm">
+                                    กรุณากรอก <b>"รหัสการจอง"</b> (Booking Code)<br />
+                                    <span className="text-xs text-gray-400">เพื่อความถูกต้องในการค้นหา</span>
+                                </p>
                             </div>
                             <form onSubmit={handleSearch} className="space-y-4">
                                 <input
                                     type="text"
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-center text-gray-800 placeholder-gray-400"
-                                    placeholder="เช่น 0891234567"
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-center text-gray-800 placeholder-gray-400 uppercase"
+                                    placeholder="รหัสจอง เช่น X8Y9Z"
                                     value={searchInput}
                                     onChange={(e) => setSearchInput(e.target.value)}
                                     autoFocus
@@ -204,7 +214,7 @@ export default function TicketPage() {
                                     disabled={!searchInput}
                                     className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    ค้นหาข้อมูล
+                                    ค้นหา
                                 </button>
                             </form>
                         </div>

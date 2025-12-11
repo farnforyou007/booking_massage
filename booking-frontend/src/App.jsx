@@ -12,7 +12,7 @@ export default function App() {
   const isActive = (path) => location.pathname === path;
 
   const navItems = [
-    { path: "/", label: "จองคิว", icon: <FiCalendar /> },
+    { path: "/", label: "ลงทะเบียน", icon: <FiCalendar /> },
     { path: "/ticket", label: "ตรวจสอบสิทธิ์", icon: <FiClipboard /> },
     // { path: "/scan", label: "สแกน (จนท.)", icon: <FiCamera /> },
     { path: "/admin", label: "เจ้าหน้าที่", icon: <FiTool /> },
@@ -36,7 +36,7 @@ export default function App() {
                   <FiActivity />
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-bold text-lg text-emerald-900 leading-tight">คลินิกการแพทย์แผนไทย</span>
+                  <span className="font-bold text-lg text-emerald-900 leading-tight">คณะการแพทย์แผนไทย</span>
                   <span className="text-[10px] text-emerald-600 font-medium tracking-wider">THAI TRADITIONAL MEDICINE</span>
                 </div>
               </div>

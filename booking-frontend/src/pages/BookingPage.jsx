@@ -25,6 +25,9 @@ export default function BookingPage() {
     const [ticketUrl, setTicketUrl] = useState("");
     const API_BASE = import.meta.env.VITE_API_BASE;
 
+    useEffect(() => {
+        document.title = "จองคิวกิจกรรมนวดรักษาอาการ | คณะการแพทย์แผนไทย";
+    }, []);
     // --- Logic เดิม (ไม่เปลี่ยนแปลง) ---
     useEffect(() => {
         if (!date) return;
@@ -121,22 +124,21 @@ export default function BookingPage() {
                 phone: phoneDigits,
             });
 
-            const code =
-                res.booking_code || res.code || res.bookingCode || res.bookingid;
+            // 🔥🔥🔥 เพิ่มส่วนนี้เข้าไปครับ 🔥🔥🔥
+            // เช็คว่า Backend ตอบกลับมาว่าไม่สำเร็จหรือไม่ (เช่น จองซ้ำ หรือ เต็ม)
+            if (res.ok === false) {
+                throw new Error(res.message || "การจองไม่สำเร็จ");
+            }
+            // ------------------------------------
+
+            const code = res.booking_code || res.code;
 
             if (!code) {
-                setMessage({
-                    text: "จองสำเร็จ แต่ไม่พบรหัสจองจากระบบ",
-                    ok: false,
-                });
-                return;
+                throw new Error("ระบบตอบรับการจอง แต่ไม่ได้รับรหัสยืนยัน");
             }
 
-            // const ticketLink = `${API_BASE}?page=ticket&code=${encodeURIComponent(code)}`;
-            const FRONTEND_BASE = "http://10.135.171.31:5173";
-
+            const FRONTEND_BASE = "http://10.135.171.31:5173"; // หรือ URL ของคุณ
             const ticketLink = `${FRONTEND_BASE}/ticket?code=${code}`;
-
 
             setBookingCode(code);
             setTicketUrl(ticketLink);
@@ -153,11 +155,20 @@ export default function BookingPage() {
                 timer: 4000,
                 showConfirmButton: false,
             });
+
         } catch (err) {
+            // เมื่อ throw error มา จะเข้าตรงนี้ และแสดงข้อความที่ถูกต้อง
+            // เช่น "คุณได้จองช่วงเวลานี้ไว้แล้ว" หรือ "เต็มแล้ว"
             setMessage({
-                text: "เกิดข้อผิดพลาด: " + err.message,
+                text: err.message,
                 ok: false,
             });
+
+            // Swal.fire({
+            //     icon: 'error',
+            //     title: 'ไม่สามารถจองได้',
+            //     text: err.message
+            // });
         }
     };
 
@@ -202,7 +213,7 @@ export default function BookingPage() {
                     <div className="mb-6 inline-block p-4 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
                         <FiActivity className="text-white text-5xl" />
                     </div>
-                    <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 tracking-wide">คลินิกการแพทย์แผนไทย</h1>
+                    <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 tracking-wide">คณะการแพทย์แผนไทย</h1>
                     <p className="text-emerald-100 text-base md:text-lg font-light leading-relaxed">
                         บริการตรวจรักษาด้วยศาสตร์การแพทย์แผนไทย<br />
                         นวดรักษา ประคบสมุนไพร และดูแลสุขภาพองค์รวม
@@ -221,7 +232,7 @@ export default function BookingPage() {
 
                     {/* Header Form */}
                     <div className="text-center md:text-left">
-                        <h2 className="text-3xl font-bold text-emerald-900">ลงทะเบียนนวดรักษา</h2>
+                        <h2 className="text-3xl font-bold text-emerald-900">ลงทะเบียนนวดรักษาอาการ</h2>
                         <p className="mt-2 text-gray-600">กรุณากรอกข้อมูลเพื่อจองคิวล่วงหน้า</p>
                     </div>
 
@@ -240,7 +251,7 @@ export default function BookingPage() {
 
                         {/* Date Input */}
                         <div className="space-y-1">
-                            <label className="text-sm font-medium text-gray-700">วันที่เข้ารับบริการ <span className="text-red-500">*</span></label>
+                            <label className="text-sm font-medium text-gray-700">วันที่เข้ารับร่วมกิจกรรม <span className="text-red-500">*</span></label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <FiCalendar className="text-gray-400" />
@@ -372,7 +383,7 @@ export default function BookingPage() {
 
                     {/* Footer Text Mobile */}
                     <div className="text-center text-xs text-gray-400 mt-8">
-                        © {new Date().getFullYear()} คลินิกการแพทย์แผนไทย <br /> พัฒนาระบบโดย ทีมงานสารสนเทศ
+                        © {new Date().getFullYear()} คณะการแพทย์แผนไทย <br /> พัฒนาระบบโดย ทีมงานสารสนเทศ
                     </div>
 
                 </div>

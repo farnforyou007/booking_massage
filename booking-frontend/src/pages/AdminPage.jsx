@@ -65,6 +65,10 @@ export default function AdminPage() {
 
     const scannerRef = useRef(null);
 
+    useEffect(() => {
+        document.title = "จัดการระบบ | คณะการแพทย์แผนไทย";
+    }, []);
+
     // --- Auth & Data Loading ---
     async function handleLogin(e) {
         e.preventDefault();
@@ -474,6 +478,7 @@ export default function AdminPage() {
                 {/* SCANNER TAB */}
                 {isAuthed && activeTab === "scan" && (
                     <div className="w-full max-w-md animate-fade-in-up space-y-6">
+                        
                         {!scanData ? (
                             <>
                                 {/* Scanner Box */}
