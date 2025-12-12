@@ -181,7 +181,7 @@ export default function TicketPage() {
                         <h2 className="text-xl font-bold tracking-wide">
                             {codeFromUrl ? "บัตรลงทะเบียน" : "บัตรลงทะเบียน"}
                         </h2>
-                        <p className="text-emerald-200 text-sm font-light">คลินิกการแพทย์แผนไทย</p>
+                        <p className="text-emerald-200 text-sm font-light">คณะการแพทย์แผนไทย</p>
                     </div>
                 </div>
 

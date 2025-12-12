@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import { getSlots, createBooking } from "../api";
 import { QRCodeCanvas } from "qrcode.react";
+import liff from "@line/liff";
 import {
     FiCalendar,
     FiClock,
@@ -24,18 +25,31 @@ export default function BookingPage() {
     const [bookingCode, setBookingCode] = useState("");
     const [ticketUrl, setTicketUrl] = useState("");
     const API_BASE = import.meta.env.VITE_API_BASE;
+    const [lineUserId, setLineUserId] = useState(""); // 👈 เพิ่มตัวนี้
+    const [lineDisplayName, setLineDisplayName] = useState("");
+    const [dateError, setDateError] = useState("");
+
+    const [slotStatus, setSlotStatus] = useState({ text: "", type: "" }); // (เก็บสถานะโหลดรอบ)
 
     useEffect(() => {
         document.title = "จองคิวกิจกรรมนวดรักษาอาการ | คณะการแพทย์แผนไทย";
     }, []);
     // --- Logic เดิม (ไม่เปลี่ยนแปลง) ---
+    // --- Logic โหลดรอบเวลา (ปรับปรุงใหม่) ---
     useEffect(() => {
-        if (!date) return;
+        if (!date) {
+            setSlotStatus({ text: "", type: "" }); // ล้างสถานะถ้าไม่มีวันที่
+            return;
+        }
 
-        setMessage({
-            text: `กำลังโหลดช่วงเวลาที่ว่างสำหรับวันที่ ${date} ...`,
-            ok: true,
+        // 🟠 1. ตั้งสถานะเป็น "กำลังโหลด" (สีส้ม)
+        setSlotStatus({
+            text: ` กำลังโหลดช่วงเวลาสำหรับวันที่ ${date} ...`,
+            type: "loading"
         });
+
+        // ล้างข้อความเก่า (Notification Area) ทิ้งไป เพราะเราย้ายมาตรงนี้แล้ว
+        setMessage({ text: "", ok: true });
 
         let cancelled = false;
 
@@ -44,23 +58,26 @@ export default function BookingPage() {
                 if (cancelled) return;
                 const items = data.items || [];
                 if (!items.length) {
-                    setMessage({
-                        text: "วันนี้ยังไม่มีการตั้งค่าช่วงเวลาให้ลงทะเบียน",
-                        ok: false,
+                    // 🔴 2. ถ้าไม่มีรอบ (สีแดง)
+                    setSlotStatus({
+                        text: "❌ วันนี้ยังไม่มีรอบว่าง หรือปิดให้บริการ",
+                        type: "error"
                     });
                 } else {
-                    setMessage({
-                        text: "เลือกช่วงเวลาที่ต้องการได้เลย",
-                        ok: true,
+                    // 🟢 3. ถ้าเจอรอบ (สีเขียว)
+                    setSlotStatus({
+                        text: `✅ โหลดสำเร็จ เลือกช่วงเวลาที่ต้องการได้เลย`,
+                        type: "success"
                     });
                 }
                 setSlots(items);
             })
             .catch((err) => {
                 if (cancelled) return;
-                setMessage({
-                    text: "โหลดช่วงเวลาไม่สำเร็จ: " + err.message,
-                    ok: false,
+                // 🔴 4. ถ้า Error (สีแดง)
+                setSlotStatus({
+                    text: "⚠️ โหลดช่วงเวลาไม่สำเร็จ: " + err.message,
+                    type: "error"
                 });
                 setSlots([]);
             });
@@ -69,6 +86,33 @@ export default function BookingPage() {
             cancelled = true;
         };
     }, [date]);
+
+    // --- LIFF INITIALIZATION ---
+    useEffect(() => {
+        const initLiff = async () => {
+            try {
+                // ดึง LIFF ID จาก .env
+                await liff.init({ liffId: import.meta.env.VITE_LIFF_ID });
+
+                if (liff.isLoggedIn()) {
+                    const profile = await liff.getProfile();
+                    setLineUserId(profile.userId);
+                    setLineDisplayName(profile.displayName);
+
+                    // (Option) ถ้าอยากให้ชื่อ User ในไลน์ เด้งไปใส่ในช่องชื่ออัตโนมัติ ให้เปิดบรรทัดล่างนี้
+                    // if (!name) setName(profile.displayName); 
+                } else {
+                    // ถ้ายังไม่ล็อกอิน และเปิดในมือถือ (ในไลน์) มันจะล็อกอินเอง
+                    // แต่ถ้าเปิดในคอม อาจจะต้องสั่ง liff.login()
+                    liff.login();
+                }
+            } catch (err) {
+                console.error("LIFF Init Error:", err);
+            }
+        };
+
+        initLiff();
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -122,6 +166,7 @@ export default function BookingPage() {
                 slot_id: slotId,
                 name: name.trim(),
                 phone: phoneDigits,
+                line_user_id: lineUserId || "NO_LIFF_ID", // 👈 เพิ่มบรรทัดนี้สำคัญมาก! 
             });
 
             // 🔥🔥🔥 เพิ่มส่วนนี้เข้าไปครับ 🔥🔥🔥
@@ -137,8 +182,8 @@ export default function BookingPage() {
                 throw new Error("ระบบตอบรับการจอง แต่ไม่ได้รับรหัสยืนยัน");
             }
 
-            const FRONTEND_BASE = "http://10.135.171.31:5173"; // หรือ URL ของคุณ
-            const ticketLink = `${FRONTEND_BASE}/ticket?code=${code}`;
+            const LIFF_URL = "https://liff.line.me/2008672437-ULl4HDOy";
+            const ticketLink = `${LIFF_URL}/ticket?code=${code}`;;
 
             setBookingCode(code);
             setTicketUrl(ticketLink);
@@ -233,13 +278,20 @@ export default function BookingPage() {
                     {/* Header Form */}
                     <div className="text-center md:text-left">
                         <h2 className="text-3xl font-bold text-emerald-900">ลงทะเบียนนวดรักษาอาการ</h2>
+                        {/* 👇 เพิ่มตรงนี้ */}
+                        {lineDisplayName && (
+                            <p className="mt-2 text-emerald-600 font-medium">
+                                สวัสดีคุณ {lineDisplayName} 👋
+                            </p>
+                        )}
+                        {/* 👆 จบส่วนเพิ่ม */}
                         <p className="mt-2 text-gray-600">กรุณากรอกข้อมูลเพื่อจองคิวล่วงหน้า</p>
                     </div>
 
                     {/* ... (ส่วน Form ข้างล่างเหมือนเดิม ไม่ต้องแก้) ... */}
                     {/* Info Box */}
                     <div className="bg-white border-l-4 border-emerald-500 shadow-sm rounded-r-lg p-4 flex items-start gap-3">
-                        <FiMapPin className="text-emerald-600 mt-1 text-lg flex-shrink-0" />
+                        <FiMapPin className="text-emerald-600 mt-1 text-lg flex shrink-0" />
                         <div className="text-sm text-gray-600">
                             <p className="font-semibold text-emerald-800">สถานที่ให้บริการ</p>
                             <p>อาคารสหเวช ชั้น 7 ห้อง TTM704</p>
@@ -250,6 +302,7 @@ export default function BookingPage() {
                     <form onSubmit={handleSubmit} className="space-y-6">
 
                         {/* Date Input */}
+                        {/* Date Input Block */}
                         <div className="space-y-1">
                             <label className="text-sm font-medium text-gray-700">วันที่เข้ารับร่วมกิจกรรม <span className="text-red-500">*</span></label>
                             <div className="relative">
@@ -260,16 +313,61 @@ export default function BookingPage() {
                                     type="date"
                                     value={date}
                                     onChange={(e) => {
-                                        setDate(e.target.value);
+                                        const val = e.target.value;
+
+                                        // ถ้ายกเลิกการเลือก (ค่าว่าง) ให้ล้างค่าทุกอย่าง
+                                        if (!val) {
+                                            setDate("");
+                                            setDateError("");
+                                            return;
+                                        }
+
+                                        // 1. แยกวันเดือนปี
+                                        const [y, m, d] = val.split('-').map(Number);
+                                        const dateObj = new Date(y, m - 1, d, 12, 0, 0);
+                                        const day = dateObj.getDay();
+
+                                        // 2. เช็คเงื่อนไข (เสาร์=6, อาทิตย์=0)
+                                        if (day !== 0 && day !== 6) {
+                                            // ❌ แทนที่จะเด้ง Swal เราเซ็ต Error Message แทน
+                                            setDateError("⚠️ เปิดให้บริการเฉพาะวันเสาร์ - อาทิตย์ เท่านั้น");
+                                            setDate(""); // ไม่รับค่าวันที่นั้น
+                                            return;
+                                        }
+
+                                        // ✅ ถ้าผ่าน: ล้าง Error และทำงานต่อ
+                                        setDateError("");
+                                        setDate(val);
                                         setSlots([]);
                                         setMessage({ text: "", ok: true });
                                         setBookingCode("");
                                         setTicketUrl("");
                                     }}
-                                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-white transition-colors"
+                                    // 🔥 ปรับ Class: ถ้ามี Error ให้ขอบเป็นสีแดง (border-red-500)
+                                    className={`block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm sm:text-sm bg-white transition-colors appearance-none min-h-[50px] text-base ${dateError
+                                        ? "border-red-500 focus:border-red-500 focus:ring-red-500 text-red-900"
+                                        : "border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
+                                        }`}
                                     required
                                 />
                             </div>
+
+                            {/* 👇 ส่วนแสดงข้อความแจ้งเตือน (จะโผล่มาเมื่อมี error) */}
+                            {dateError && (
+                                <p className="mt-1 text-sm text-red-600 animate-pulse font-medium">
+                                    {dateError}
+                                </p>
+                            )}
+
+                            {slotStatus.text && !dateError && (
+                                <div className={`mt-2 text-xs md:text-sm p-3 rounded-lg flex items-center gap-2 animate-fade-in-up transition-colors duration-300 ${slotStatus.type === "loading" ? "bg-orange-50 text-orange-700 border border-orange-200" :
+                                    slotStatus.type === "success" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
+                                        "bg-red-50 text-red-700 border border-red-200"
+                                    }`}>
+                                    {slotStatus.type === "loading" && <span className="animate-spin">⏳</span>}
+                                    {slotStatus.text}
+                                </div>
+                            )}
                         </div>
 
                         {/* Slot Select */}

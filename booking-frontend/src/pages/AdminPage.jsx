@@ -442,12 +442,24 @@ export default function AdminPage() {
                                 </div>
                                 <div className="flex-1 overflow-auto">
                                     <table className="w-full text-left">
-                                        <thead className="bg-gray-50 sticky top-0 text-xs font-bold text-gray-500 uppercase"><tr><th className="px-4 py-3">เวลา</th><th className="px-4 py-3">ชื่อ-สกุล</th><th className="px-4 py-3 text-center">สถานะ</th><th className="px-4 py-3 text-right">จัดการ</th></tr></thead>
+                                        <thead className="bg-gray-50 sticky top-0 text-xs font-bold text-gray-500 uppercase">
+                                            <tr>
+                                                <th className="px-4 py-3">เวลา</th>
+                                                <th className="px-4 py-3">ชื่อ-สกุล</th>
+                                                <th className="px-4 py-3">รหัสการจอง</th>
+                                                <th className="px-4 py-3 text-center">สถานะ</th>
+                                                <th className="px-4 py-3 text-right">จัดการ</th>
+                                            </tr>
+                                        </thead>
                                         <tbody className="text-sm divide-y divide-gray-50">
                                             {filteredBookings.map((b, i) => (
                                                 <tr key={i} className="hover:bg-emerald-50/30">
                                                     <td className="px-4 py-3 font-medium text-emerald-700">{b.slot}</td>
-                                                    <td className="px-4 py-3"><div className="font-medium">{b.name}</div><div className="text-xs text-gray-400">{b.phone}</div></td>
+                                                    <td className="px-4 py-3">
+                                                        <div className="font-medium">{b.name}</div>
+                                                        <div className="text-xs text-gray-400">{b.phone}</div>
+                                                    </td>
+                                                    <td className="px-4 py-3">{b.code}</td>
                                                     <td className="px-4 py-3 text-center">{renderStatusBadge(b.status)}</td>
                                                     <td className="px-4 py-3 text-right">
                                                         {b.status === "BOOKED" && <div className="flex justify-end gap-2"><button onClick={() => handleChangeStatus(b, "CHECKED_IN")} className="p-1.5 bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200"><FiCheckSquare /></button><button onClick={() => handleChangeStatus(b, "CANCELLED")} className="p-1.5 bg-rose-100 text-rose-700 rounded hover:bg-rose-200"><FiXCircle /></button></div>}
