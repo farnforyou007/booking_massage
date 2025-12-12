@@ -106,3 +106,29 @@ export async function userCancelBooking(code) {
     if (!data.ok) throw new Error(data.message || "ยกเลิกรายการไม่สำเร็จ");
     return data;
 }
+
+// --- ส่วนจัดการวันที่ (Date Management) ---
+
+// ดึงรายชื่อวันที่เปิดจอง
+export async function getOpenDates() {
+    try {
+        const response = await fetch(`${API_BASE}?action=getDates`);
+        if (!response.ok) throw new Error("Network error");
+        return await response.json();
+    } catch (err) {
+        console.error("API Error:", err);
+        return { dates: [] }; // คืนค่าว่างกันเหนียว
+    }
+}
+
+// เพิ่มวันใหม่
+export async function addOpenDate(dateStr) {
+    const response = await fetch(`${API_BASE}?action=addDate&date=${dateStr}`);
+    return await response.json();
+}
+
+// ลบวันทิ้ง
+export async function deleteOpenDate(dateStr) {
+    const response = await fetch(`${API_BASE}?action=deleteDate&date=${dateStr}`);
+    return await response.json();
+}
