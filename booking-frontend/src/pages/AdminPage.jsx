@@ -17,6 +17,9 @@ import {
     FiCamera, FiImage, FiGrid, FiAlertTriangle, FiCameraOff
 } from "react-icons/fi";
 
+// เพิ่มบรรทัดนี้ต่อจาก import อื่นๆ
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
 // --- 1. สร้าง Toast Config (แจ้งเตือนมุมขวาบน) ---
@@ -361,6 +364,26 @@ export default function AdminPage() {
         });
     }, [bookings, searchTerm, filterStatus]);
 
+    // --- เตรียมข้อมูลกราฟ: นับจำนวนคนจอง แยกตามรอบเวลา ---
+    const chartData = useMemo(() => {
+        const stats = {};
+        
+        // วนลูปนับยอด (เฉพาะที่ยังไม่ยกเลิก)
+        bookings.forEach(b => {
+            if (b.status !== "CANCELLED") {
+                // const time = b.slot.split(" ")[0]; // เอาแค่เวลาเริ่ม (เช่น "09:00")
+                const time = b.slot;
+                stats[time] = (stats[time] || 0) + 1;
+            }
+        });
+
+        // แปลงเป็น Array เพื่อใส่ในกราฟ
+        return Object.keys(stats).sort().map(time => ({
+            name: time,
+            count: stats[time]
+        }));
+    }, [bookings]);
+
     const kpiStats = useMemo(() => {
         const total = bookings.length;
         const checkedIn = bookings.filter(b => b.status === "CHECKED_IN").length;
@@ -431,6 +454,28 @@ export default function AdminPage() {
                             <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center"><div><p className="text-xs text-gray-500">ยกเลิก</p><p className="text-xl font-bold text-rose-600">{kpiStats.cancelled}</p></div><FiXCircle className="text-rose-200 text-2xl" /></div>
                         </div>
 
+                        {/* 🔥🔥🔥 เพิ่มส่วนกราฟตรงนี้ 🔥🔥🔥 */}
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                            <h3 className="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
+                                <FiActivity className="text-emerald-600" /> สถิติการจองวันนี้
+                            </h3>
+                            <div className="h-[300px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={chartData}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                        <XAxis dataKey="name" stroke="#888888" fontSize={12} />
+                                        <YAxis allowDecimals={false} stroke="#888888" fontSize={12} />
+                                        <Tooltip 
+                                            cursor={{ fill: '#f0fdf4' }}
+                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                        />
+                                        <Bar dataKey="count" name="จำนวนคน" fill="#059669" radius={[4, 4, 0, 0]} barSize={40} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                        {/* 🔥🔥🔥 จบส่วนกราฟ 🔥🔥🔥 */}
+                        
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                             {/* Table */}
                             <div className="lg:col-span-8 flex flex-col h-[600px] bg-white rounded-3xl shadow-md border border-gray-100 overflow-hidden">
