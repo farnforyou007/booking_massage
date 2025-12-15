@@ -11,13 +11,15 @@ import {
     getOpenDates,
     addOpenDate,
     deleteOpenDate,
+    getManageDates,
+    updateDateStatus
 } from "../api";
 import {
     FiCalendar, FiRefreshCw, FiClock,
     FiCheckCircle, FiXCircle, FiActivity, FiEdit2, FiLogOut,
     FiLayers, FiUsers, FiSearch, FiCheckSquare,
     FiCamera, FiImage, FiAlertTriangle, FiCameraOff, FiPlus, FiTrash2, FiPieChart, FiBarChart2,
-    FiLoader, FiPhone // เพิ่มไอคอน Phone
+    FiLoader, FiPhone, FiLock, FiUnlock // เพิ่มไอคอน Phone
 } from "react-icons/fi";
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -102,7 +104,7 @@ export default function AdminPage() {
             if (resB.ok) setBookings(resB.items || []);
             else if (resB.auth === false) handleLogout();
 
-            if (resS.ok) setSlots(resS.items || []);
+            if (resS.ok) setSlots(resS.slots || resS.items || []);
         } catch (err) {
             console.error(err);
             Toast.fire({ icon: 'error', title: 'โหลดข้อมูลไม่สำเร็จ' });
@@ -111,9 +113,16 @@ export default function AdminPage() {
         }
     }
 
+    // const loadDates = () => {
+    //     getOpenDates()
+    //         .then(res => { if (res.dates) setManageDates(res.dates); })
+    //         .catch(err => console.error("Load dates error:", err));
+    // };
+    // 1. แก้ loadDates ให้ใช้ getManageDates แทน
     const loadDates = () => {
-        getOpenDates()
-            .then(res => { if (res.dates) setManageDates(res.dates); })
+        // ใช้ API ตัวใหม่ ที่ได้ทั้งวันที่และสถานะ (items: [{date: '...', status: 'OPEN'}, ...])
+        getManageDates()
+            .then(res => { if (res.items) setManageDates(res.items); })
             .catch(err => console.error("Load dates error:", err));
     };
 
@@ -197,9 +206,36 @@ export default function AdminPage() {
         }
     }
 
+    // const handleAddDate = async () => {
+    //     if (!newDate) return;
+    //     if (manageDates.includes(newDate)) {
+    //         Swal.fire("ซ้ำ", "วันนี้มีอยู่ในรายการแล้วครับ", "warning");
+    //         return;
+    //     }
+
+    //     setAddingDate(true);
+    //     try {
+    //         const res = await addOpenDate(newDate);
+    //         if (res.ok) {
+    //             const updatedDates = [...manageDates, newDate].sort();
+    //             setManageDates(updatedDates);
+    //             Toast.fire({ icon: 'success', title: 'เพิ่มวันที่เรียบร้อย' });
+    //             setNewDate("");
+    //         } else {
+    //             Swal.fire("แจ้งเตือน", res.message, "warning");
+    //         }
+    //     } catch (err) {
+    //         Swal.fire("Error", "เชื่อมต่อไม่ได้", "error");
+    //     } finally {
+    //         setAddingDate(false);
+    //     }
+    // };
+    // 2. แก้ handleAddDate ให้รองรับ Object แทน String
     const handleAddDate = async () => {
         if (!newDate) return;
-        if (manageDates.includes(newDate)) {
+
+        // เช็คซ้ำต้องเช็คที่ .date เพราะตอนนี้ข้อมูลเป็น object แล้ว
+        if (manageDates.some(d => d.date === newDate)) {
             Swal.fire("ซ้ำ", "วันนี้มีอยู่ในรายการแล้วครับ", "warning");
             return;
         }
@@ -208,8 +244,14 @@ export default function AdminPage() {
         try {
             const res = await addOpenDate(newDate);
             if (res.ok) {
-                const updatedDates = [...manageDates, newDate].sort();
-                setManageDates(updatedDates);
+                // ✅ แก้ตรงนี้: สร้าง Object แทน String
+                const newDateObj = { date: newDate, status: "OPEN" };
+
+                // ✅ แก้ตรงนี้: ยัด Object ลงไป แล้วเรียงลำดับใหม่
+                setManageDates(prev =>
+                    [...prev, newDateObj].sort((a, b) => a.date.localeCompare(b.date))
+                );
+
                 Toast.fire({ icon: 'success', title: 'เพิ่มวันที่เรียบร้อย' });
                 setNewDate("");
             } else {
@@ -222,6 +264,33 @@ export default function AdminPage() {
         }
     };
 
+
+    // const handleDeleteDate = async (dateStr) => {
+    //     const confirm = await Swal.fire({
+    //         title: 'ปิดรับจอง?',
+    //         text: `ต้องการลบวันที่ ${formatThaiDateAdmin(dateStr)} ออกจากระบบ?`,
+    //         icon: 'warning',
+    //         showCancelButton: true,
+    //         confirmButtonColor: '#d33',
+    //         confirmButtonText: 'ลบเลย'
+    //     });
+
+    //     if (confirm.isConfirmed) {
+    //         Swal.fire({ title: 'กำลังลบ...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+    //         try {
+    //             const res = await deleteOpenDate(dateStr);
+    //             Swal.close();
+    //             if (res.ok) {
+    //                 setManageDates(prev => prev.filter(d => d !== dateStr));
+    //                 Toast.fire({ icon: 'success', title: 'ลบเรียบร้อย' });
+    //             } else {
+    //                 throw new Error(res.message);
+    //             }
+    //         } catch (err) { Swal.fire("Error", "ลบไม่ได้: " + err.message, "error"); }
+    //     }
+    // };
+
+    // 3. แก้ handleDeleteDate ให้รองรับ Object แทน String
     const handleDeleteDate = async (dateStr) => {
         const confirm = await Swal.fire({
             title: 'ปิดรับจอง?',
@@ -238,7 +307,9 @@ export default function AdminPage() {
                 const res = await deleteOpenDate(dateStr);
                 Swal.close();
                 if (res.ok) {
-                    setManageDates(prev => prev.filter(d => d !== dateStr));
+                    // ✅ แก้ตรงนี้: เช็คว่า d.date ไม่เท่ากับวันที่เราลบ
+                    setManageDates(prev => prev.filter(d => d.date !== dateStr));
+
                     Toast.fire({ icon: 'success', title: 'ลบเรียบร้อย' });
                 } else {
                     throw new Error(res.message);
@@ -375,11 +446,42 @@ export default function AdminPage() {
 
     const handleResetScan = () => { setScanData(null); setManualCode(""); };
 
+    // 2. เพิ่มฟังก์ชันสลับสถานะ (Toggle)
+    const handleToggleStatus = async (dateObj) => {
+        const newStatus = dateObj.status === "OPEN" ? "CLOSED" : "OPEN";
+
+        // Optimistic Update: เปลี่ยนสีปุ่มทันทีเพื่อให้ดูเร็ว (ไม่ต้องรอ Server ตอบ)
+        setManageDates(prev => prev.map(d =>
+            d.date === dateObj.date ? { ...d, status: newStatus } : d
+        ));
+
+        try {
+            // ยิง API ไปบอก Backend
+            const res = await updateDateStatus(dateObj.date, newStatus);
+            if (!res.ok) throw new Error(res.message);
+            // ถ้าสำเร็จ ไม่ต้องทำอะไรเพิ่ม เพราะเราแก้หน้าจอไปแล้ว
+        } catch (err) {
+            // ถ้าพัง! ค่อยเปลี่ยนค่ากลับคืน
+            setManageDates(prev => prev.map(d =>
+                d.date === dateObj.date ? { ...d, status: dateObj.status } : d
+            ));
+            Swal.fire("Error", "เปลี่ยนสถานะไม่ได้: " + err.message, "error");
+        }
+    };
     // --- Render ---
     return (
+        
         <div className="min-h-screen bg-stone-50 font-sans flex flex-col">
             <style>{`@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap'); .font-sans { font-family: 'Prompt', sans-serif; }`}</style>
-
+            {loading && (
+                <div className="fixed inset-0 z-[999] flex items-center justify-center bg-white/60 backdrop-blur-[2px] transition-all duration-300">
+                    <div className="bg-white p-6 rounded-3xl shadow-2xl border border-emerald-100 flex flex-col items-center animate-bounce-slow">
+                        {/* ไอคอนหมุนวงกลมสีเขียวสวยๆ */}
+                        <div className="w-12 h-12 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin mb-3"></div>
+                        <p className="text-emerald-800 font-semibold text-sm animate-pulse">กำลังโหลดข้อมูล...</p>
+                    </div>
+                </div>
+            )}
             <nav className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-30 shadow-sm">
                 <div className="max-w-7xl mx-auto flex justify-between items-center">
                     <div className="flex items-center gap-2 text-emerald-800 font-bold"><FiActivity size={24} /> <span className="hidden sm:inline">ระบบจัดการคิว</span></div>
@@ -514,20 +616,69 @@ export default function AdminPage() {
                                             {addingDate ? <FiLoader className="animate-spin" /> : <FiPlus />} {addingDate ? "..." : "เพิ่ม"}
                                         </button>
                                     </div>
-                                    <div className="flex flex-wrap gap-2 max-h-[200px] overflow-y-auto pr-1">
+                                    {/* <div className="flex flex-wrap gap-2 max-h-[200px] overflow-y-auto pr-1">
                                         {manageDates.length > 0 ? manageDates.map(d => (
                                             <div key={d} className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100 text-xs">
-                                                {/* 🔥 แสดงปีด้วย (ผ่านฟังก์ชัน formatThaiDateAdmin) */}
+                                              
                                                 <span className="text-emerald-800 font-medium">{formatThaiDateAdmin(d)}</span>
                                                 <button onClick={() => handleDeleteDate(d)} className="text-red-300 hover:text-red-500"><FiTrash2 /></button>
                                             </div>
                                         )) : <p className="text-xs text-gray-400 w-full text-center py-2">ยังไม่มีวันเปิดจอง</p>}
+                                    </div> */}
+
+
+
+                                    {/* <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1"> */}
+                                    <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto pr-1">
+                                        {manageDates.length > 0 ? manageDates.map((item) => (
+                                            <div
+                                                key={item.date} // item เป็น object แล้วนะครับ ไม่ใช่ string
+                                                className={`flex items-center justify-between px-3 py-2 rounded-lg border transition-all ${item.status === "OPEN"
+                                                    ? "bg-emerald-50 border-emerald-200"
+                                                    : "bg-gray-50 border-gray-200 opacity-75"
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    {/* ปุ่มแม่กุญแจ (Toggle Status) */}
+                                                    <button
+                                                        onClick={() => handleToggleStatus(item)}
+                                                        className={`p-1.5 rounded-full transition-colors ${item.status === "OPEN"
+                                                            ? "bg-emerald-100 text-emerald-600 hover:bg-emerald-200"
+                                                            : "bg-gray-200 text-gray-500 hover:bg-gray-300"
+                                                            }`}
+                                                        title={item.status === "OPEN" ? "คลิกเพื่อปิด" : "คลิกเพื่อเปิด"}
+                                                    >
+                                                        {item.status === "OPEN" ? <FiUnlock size={14} /> : <FiLock size={14} />}
+                                                    </button>
+
+                                                    {/* วันที่ */}
+                                                    <span className={`text-sm font-medium ${item.status === "OPEN" ? "text-emerald-900" : "text-gray-500 line-through decoration-gray-400"}`}>
+                                                        {formatThaiDateAdmin(item.date)}
+                                                    </span>
+                                                </div>
+
+                                                {/* ปุ่มลบ */}
+                                                <button
+                                                    onClick={() => handleDeleteDate(item.date)}
+                                                    className="text-gray-400 hover:text-rose-500 p-1 rounded-md hover:bg-rose-50 transition-colors"
+                                                    title="ลบถาวร"
+                                                >
+                                                    <FiTrash2 size={16} />
+                                                </button>
+                                            </div>
+                                        )) : (
+                                            // <div className="text-center py-6 border-2 border-dashed border-gray-100 rounded-xl">
+                                            <div className="col-span-2 text-center py-6 border-2 border-dashed border-gray-100 rounded-xl">
+                                                <p className="text-xs text-gray-400">ยังไม่มีวันเปิดจอง</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
-                                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex-1 flex flex-col h-[350px]">
+                                {/* <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex-1 flex flex-col h-[350px]">
                                     <h3 className="text-sm font-bold text-gray-600 mb-4 flex items-center gap-2"><FiLayers className="text-blue-600" /> จัดการคิว ({slots.length})</h3>
                                     <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+                                        
                                         {slots.map((s) => (
                                             <div key={s.id} className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex flex-col gap-2">
                                                 <div className="flex justify-between items-center"><span className="font-bold text-xs text-gray-700">{s.label}</span><button onClick={() => handleEditCapacity(s)} className="text-gray-400 hover:text-emerald-600"><FiEdit2 size={12} /></button></div>
@@ -535,6 +686,44 @@ export default function AdminPage() {
                                                 <div className="flex justify-between text-[10px] text-gray-500"><span>จอง {s.booked}/{s.capacity}</span><span>{s.remaining === 0 ? 'เต็ม' : 'ว่าง ' + s.remaining}</span></div>
                                             </div>
                                         ))}
+                                    </div>
+                                </div> */}
+                                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex-1 flex flex-col h-[350px]">
+                                    <h3 className="text-sm font-bold text-gray-600 mb-4 flex items-center gap-2">
+                                        <FiLayers className="text-blue-600" /> จัดการคิว ({Array.isArray(slots) ? slots.length : 0})
+                                    </h3>
+                                    <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+
+                                        {/* ✅ แก้ตรงนี้: เช็คว่าเป็น Array และมีข้อมูลไหม ก่อนใช้ .map */}
+                                        {Array.isArray(slots) && slots.length > 0 ? (
+                                            slots.map((s) => (
+                                                <div key={s.id} className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex flex-col gap-2">
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="font-bold text-xs text-gray-700">{s.label}</span>
+                                                        <button onClick={() => handleEditCapacity(s)} className="text-gray-400 hover:text-emerald-600">
+                                                            <FiEdit2 size={12} />
+                                                        </button>
+                                                    </div>
+                                                    <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                                        <div
+                                                            className={`h-full rounded-full ${s.remaining === 0 ? 'bg-rose-500' : 'bg-emerald-500'}`}
+                                                            style={{ width: `${(s.booked / s.capacity) * 100}%` }}
+                                                        ></div>
+                                                    </div>
+                                                    <div className="flex justify-between text-[10px] text-gray-500">
+                                                        <span>จอง {s.booked}/{s.capacity}</span>
+                                                        <span>{s.remaining === 0 ? 'เต็ม' : 'ว่าง ' + s.remaining}</span>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            // กรณีไม่มีข้อมูล หรือ slots ไม่ใช่ Array
+                                            <div className="text-center text-gray-400 text-xs mt-10">
+                                                <p>ไม่พบข้อมูลรอบเวลา</p>
+                                                <p className="opacity-50">(หรือกำลังโหลด...)</p>
+                                            </div>
+                                        )}
+
                                     </div>
                                 </div>
                             </div>

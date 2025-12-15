@@ -132,3 +132,25 @@ export async function deleteOpenDate(dateStr) {
     const response = await fetch(`${API_BASE}?action=deleteDate&date=${dateStr}`);
     return await response.json();
 }
+// 1. ดึงรายการวันที่ทั้งหมด (รวมสถานะ OPEN/CLOSED) สำหรับ Admin
+export async function getManageDates() {
+    try {
+        const response = await fetch(`${API_BASE}?action=getManageDates`);
+        return await response.json();
+    } catch (err) {
+        console.error("API Error:", err);
+        return { ok: false, message: err.message };
+    }
+}
+
+// 2. อัปเดตสถานะวันที่ (เปิด/ปิด)
+export async function updateDateStatus(dateStr, status) {
+    try {
+        // ส่ง date และ status ไปให้ Backend
+        const response = await fetch(`${API_BASE}?action=updateDateStatus&date=${dateStr}&status=${status}`);
+        return await response.json();
+    } catch (err) {
+        console.error("API Error:", err);
+        return { ok: false, message: err.message };
+    }
+}
