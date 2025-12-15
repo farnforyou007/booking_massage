@@ -25,3 +25,7 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+
+../code.gs
+../งานเก่า/
+*.ini
