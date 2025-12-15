@@ -132,7 +132,7 @@ export default function BookingPage() {
                     setLineDisplayName(profile.displayName);
                 } else {
                     // 👇🔥 ใส่บรรทัดนี้กลับมาครับ (สำหรับขึ้น Production)
-                    // liff.login(); 
+                    liff.login();
                 }
             } catch (err) {
                 console.error("LIFF Init Error:", err);
@@ -283,7 +283,8 @@ export default function BookingPage() {
                         <FiMapPin className="text-emerald-600 mt-1 text-lg flex shrink-0" />
                         <div className="text-sm text-gray-600">
                             <p className="font-semibold text-emerald-800">สถานที่ให้บริการ</p>
-                            <p>อาคารสหเวช ชั้น 7 ห้อง TTM704</p>
+                            <p>โรงพยาบาลแพทย์แผนไทย มหาวิทยาลัยสงขลานครินทร์ </p>
+                            <p> อาคารสหเวช ชั้น 7 ห้อง TTM704</p>
                             <p className="text-xs text-gray-400 mt-1">เปิดบริการตามวันที่กำหนด</p>
                         </div>
                     </div>
@@ -291,10 +292,10 @@ export default function BookingPage() {
                     <form onSubmit={handleSubmit} className="space-y-6">
 
                         {/* 1. Date Select */}
-                        <div className="space-y-1">
+                        {/* <div className="space-y-1">
                             <label className="text-sm font-medium text-gray-700 flex justify-between">
                                 วันที่ร่วมกิจกรรม <span className="text-red-500">*</span>
-                                {/* ⏳ แสดง Spinner เล็กๆ ตรงหัวข้อถ้ากำลังโหลดวัน */}
+                                
                                 {loadingDates && <span className="text-xs text-emerald-600 flex items-center gap-1"><FiLoader className="animate-spin" /> กำลังโหลดวันที่...</span>}
                             </label>
                             <div className="relative">
@@ -321,14 +322,73 @@ export default function BookingPage() {
                                 </div>
                             </div>
 
-                            {/* แสดงสถานะการโหลดรอบ (Slot Loading) */}
                             {slotStatus.text && (
                                 <div className={`mt-2 text-xs md:text-sm p-3 rounded-lg flex items-center gap-2 animate-fade-in-up transition-colors duration-300 
                                     ${slotStatus.type === "loading" ? "bg-orange-50 text-orange-700 border border-orange-200" :
                                         slotStatus.type === "success" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
                                             "bg-red-50 text-red-700 border border-red-200"
                                     }`}>
-                                    {/* ⏳ Spinner สำหรับรอบเวลา */}
+                                    
+                                    {slotStatus.type === "loading" && <FiLoader className="animate-spin" />}
+                                    {slotStatus.text}
+                                </div>
+                            )}
+                        </div> */}
+
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium text-gray-700 flex justify-between">
+                                วันที่ร่วมกิจกรรม <span className="text-red-500">*</span>
+                                {loadingDates && <span className="text-xs text-emerald-600 flex items-center gap-1"><FiLoader className="animate-spin" /> กำลังโหลดวันที่...</span>}
+                            </label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <FiCalendar className="text-gray-400" />
+                                </div>
+
+                                <select
+                                    value={date}
+                                    onChange={(e) => setDate(e.target.value)}
+                                    // 🔥 แก้ตรงนี้ 1: ปิดการใช้งานถ้ากำลังโหลด หรือไม่มีวันเปิดจอง
+                                    disabled={loadingDates || availableDates.length === 0}
+                                    className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-white cursor-pointer appearance-none min-h-[50px] text-base disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+                                    required
+                                >
+                                    {/* 🔥 แก้ตรงนี้ 2: เปลี่ยนข้อความตามสถานะ */}
+                                    <option value="">
+                                        {loadingDates
+                                            ? "⏳ กำลังโหลดตาราง..."
+                                            : availableDates.length === 0
+                                                ? "⚠️ ยังไม่มีรอบเปิดให้บริการ"
+                                                : "-- กรุณาเลือกวันที่ --"
+                                        }
+                                    </option>
+
+                                    {availableDates.map((d) => (
+                                        <option key={d} value={d}>
+                                            {formatFullThaiDate(d)}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                                </div>
+                            </div>
+
+                            {/* 🔥 แก้ตรงนี้ 3: เพิ่มข้อความแจ้งเตือนตัวแดง ถ้าไม่มีวันเปิดจอง */}
+                            {!loadingDates && availableDates.length === 0 && (
+                                <p className="text-xs text-orange-600 mt-2 flex items-center gap-1 animate-pulse">
+                                    <FiAlertCircle /> ขออภัย ขณะนี้ระบบยังไม่มีกำหนดการเปิดรับลงทะเบียน
+                                </p>
+                            )}
+
+                            {/* แสดงสถานะการโหลดรอบ (Slot Loading) อันเดิมของคุณ */}
+                            {slotStatus.text && (
+                                <div className={`mt-2 text-xs md:text-sm p-3 rounded-lg flex items-center gap-2 animate-fade-in-up transition-colors duration-300 
+                                    ${slotStatus.type === "loading" ? "bg-orange-50 text-orange-700 border border-orange-200" :
+                                        slotStatus.type === "success" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
+                                            "bg-red-50 text-red-700 border border-red-200"
+                                    }`}>
                                     {slotStatus.type === "loading" && <FiLoader className="animate-spin" />}
                                     {slotStatus.text}
                                 </div>
