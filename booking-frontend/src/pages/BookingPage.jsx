@@ -42,7 +42,7 @@ export default function BookingPage() {
     const [dateError, setDateError] = useState("");
 
     useEffect(() => {
-        document.title = "จองคิวกิจกรรมนวดรักษาอาการ | คณะการแพทย์แผนไทย";
+        document.title = "TTM | Massage | คณะการแพทย์แผนไทย";
     }, []);
     // 🔥 ฟังก์ชันแปลงวันที่เป็นไทยแบบเต็ม (ใช้ใน Dropdown)
     const formatFullThaiDate = (dateStr) => {
