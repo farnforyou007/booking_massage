@@ -249,19 +249,18 @@ export default function BookingPage() {
                 .animation-delay-2000 { animation-delay: 2s; }
             `}</style>
 
-            {(loadingDates || isSubmitting) && (
+            {/* {(loadingDates || isSubmitting) && (
                 <div className="fixed inset-0 z-[999] flex items-center justify-center bg-white/60 backdrop-blur-[2px] transition-all duration-300">
                     <div className="bg-white p-6 rounded-3xl shadow-2xl border border-emerald-100 flex flex-col items-center animate-bounce-slow">
-                        {/* ไอคอนหมุน */}
+                        
                         <div className="w-12 h-12 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin mb-3"></div>
                         
-                        {/* ข้อความเปลี่ยนตามสถานะ */}
                         <p className="text-emerald-800 font-semibold text-sm animate-pulse">
                             {isSubmitting ? "กำลังบันทึกการจอง..." : "กำลังโหลดข้อมูล..."}
                         </p>
                     </div>
                 </div>
-            )}
+            )} */}
 
             {/* Left Side: Image Banner */}
             <div className="hidden md:flex md:w-1/2 bg-emerald-800 relative overflow-hidden">

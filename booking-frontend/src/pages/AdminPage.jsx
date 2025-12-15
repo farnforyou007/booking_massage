@@ -70,6 +70,7 @@ export default function AdminPage() {
     const [slots, setSlots] = useState([]);
     const [manageDates, setManageDates] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [loginLoading, setLoginLoading] = useState(false); // Loading state สำหรับการล็อกอิน
     const [activeTab, setActiveTab] = useState("dashboard");
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState("ALL");
@@ -132,7 +133,8 @@ export default function AdminPage() {
     async function handleLogin(e) {
         e.preventDefault();
         if (!passwordInput.trim()) return;
-        setLoading(true);
+        // setLoading(true);
+        setLoginLoading(true);
         try {
             const res = await adminLogin(passwordInput.trim());
             if (res.ok && res.token) {
@@ -141,7 +143,12 @@ export default function AdminPage() {
                 setPasswordInput("");
                 Toast.fire({ icon: 'success', title: 'เข้าสู่ระบบสำเร็จ' });
             } else { Swal.fire("ผิดพลาด", "รหัสผ่านไม่ถูกต้อง", "error"); }
-        } catch (err) { Swal.fire("Error", err.message, "error"); } finally { setLoading(false); }
+        } catch (err) {
+            Swal.fire("Error", err.message, "error");
+        } finally {
+            // setLoading(false); 
+            setLoginLoading(false);
+        }
     }
 
     function handleLogout() {
@@ -470,7 +477,7 @@ export default function AdminPage() {
     };
     // --- Render ---
     return (
-        
+
         <div className="min-h-screen bg-stone-50 font-sans flex flex-col">
             <style>{`@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap'); .font-sans { font-family: 'Prompt', sans-serif; }`}</style>
             {loading && (
@@ -502,9 +509,15 @@ export default function AdminPage() {
                     <div className="w-full max-w-md mt-10 bg-white rounded-3xl shadow-xl border border-gray-100 p-8 animate-fade-in-up">
                         <h2 className="text-xl font-bold text-center text-emerald-800 mb-6">เข้าสู่ระบบเจ้าหน้าที่</h2>
                         <form onSubmit={handleLogin} className="space-y-4">
-                            <input type="password" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl" placeholder="รหัสผ่าน" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} />
-                            <button type="submit" disabled={loading} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-lg flex justify-center items-center gap-2">
-                                {loading && <FiLoader className="animate-spin" />} {loading ? "กำลังตรวจสอบ..." : "เข้าสู่ระบบ"}
+                            <input type="password"
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl"
+                                placeholder="รหัสผ่าน" value={passwordInput}
+                                onChange={e => setPasswordInput(e.target.value)} />
+                            <button type="submit" disabled={loginLoading}
+                                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-lg flex justify-center items-center gap-2">
+                                {/* {loading && <FiLoader className="animate-spin" />} {loading ? "กำลังตรวจสอบ..." : "เข้าสู่ระบบ"} */}
+                                {loginLoading && <FiLoader className="animate-spin" />}
+                                {loginLoading ? "กำลังตรวจสอบ..." : "เข้าสู่ระบบ"}
                             </button>
                         </form>
                     </div>
