@@ -249,7 +249,7 @@ export default function BookingPage() {
                 .animation-delay-2000 { animation-delay: 2s; }
             `}</style>
 
-            {/* {(loadingDates || isSubmitting) && (
+            {(loadingDates || isSubmitting) && (
                 <div className="fixed inset-0 z-[999] flex items-center justify-center bg-white/60 backdrop-blur-[2px] transition-all duration-300">
                     <div className="bg-white p-6 rounded-3xl shadow-2xl border border-emerald-100 flex flex-col items-center animate-bounce-slow">
                         
@@ -260,7 +260,7 @@ export default function BookingPage() {
                         </p>
                     </div>
                 </div>
-            )} */}
+            )}
 
             {/* Left Side: Image Banner */}
             <div className="hidden md:flex md:w-1/2 bg-emerald-800 relative overflow-hidden">
