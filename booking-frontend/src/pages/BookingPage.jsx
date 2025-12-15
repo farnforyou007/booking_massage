@@ -132,7 +132,7 @@ export default function BookingPage() {
                     setLineDisplayName(profile.displayName);
                 } else {
                     // 👇🔥 ใส่บรรทัดนี้กลับมาครับ (สำหรับขึ้น Production)
-                    // liff.login();
+                    liff.login();
                 }
             } catch (err) {
                 console.error("LIFF Init Error:", err);

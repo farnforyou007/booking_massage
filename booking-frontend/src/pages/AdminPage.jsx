@@ -491,10 +491,11 @@ export default function AdminPage() {
             )}
             <nav className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-30 shadow-sm">
                 <div className="max-w-7xl mx-auto flex justify-between items-center">
-                    <div className="flex items-center gap-2 text-emerald-800 font-bold"><FiActivity size={24} /> <span className="hidden sm:inline">ระบบจัดการคิว</span></div>
+                    <div className="flex items-center gap-2 text-emerald-800 font-bold">
+                        <FiActivity size={24} /> <span className="hidden sm:inline">ระบบจัดการคิว</span></div>
                     {isAuthed && (
                         <div className="flex items-center gap-3">
-                            <div className="hidden md:flex bg-gray-100 p-1 rounded-lg">
+                            <div className=" md:flex bg-gray-100 p-1 rounded-lg">
                                 <button onClick={() => setActiveTab("dashboard")} className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'dashboard' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500'}`}>แดชบอร์ด</button>
                                 <button onClick={() => setActiveTab("scan")} className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'scan' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500'}`}>สแกน</button>
                             </div>
